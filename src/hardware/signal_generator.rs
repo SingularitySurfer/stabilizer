@@ -8,6 +8,7 @@ use serde::Deserialize;
 /// Types of signals that can be generated.
 #[derive(Copy, Clone, Debug, Deserialize, Miniconf)]
 pub enum Signal {
+    Sine,
     Cosine,
     Square,
     Triangle,
@@ -36,6 +37,12 @@ pub struct BasicConfig {
 
     /// The amplitude of the output signal in volts.
     pub amplitude: f32,
+
+    /// Voltage offset in Volt
+    pub offset: f32,
+
+    /// Phase offset in degree
+    pub phase_offset_deg: f32
 }
 
 impl Default for BasicConfig {
@@ -45,6 +52,8 @@ impl Default for BasicConfig {
             symmetry: 0.5,
             signal: Signal::Cosine,
             amplitude: 0.0,
+            phase_offset_deg: 0.0,
+            offset: 0.0,
         }
     }
 }
@@ -58,6 +67,10 @@ pub enum Error {
     InvalidSymmetry,
     /// The provided frequency is out of range.
     InvalidFrequency,
+    /// The provided voltage offset with given amplitude is out of range.
+    InvalidOffset,
+    /// The provided phase offset is out of range.
+    InvalidPhaseOffset,
 }
 
 impl BasicConfig {
@@ -101,12 +114,31 @@ impl BasicConfig {
             } as i32,
         ];
 
+        // Validate maximum/minimum output (offset)
+        let max_output: f32 = self.amplitude + self.offset;
+        let min_output: f32 = self.offset - self.amplitude;
+        if min_output < -10.0 || max_output > 10.0 {
+            return Err(Error::InvalidOffset);
+        }    
+
+        // Validate phase offset
+        if self.phase_offset_deg < -360.0 || self.phase_offset_deg > 360.0{
+            return Err(Error::InvalidPhaseOffset);    
+        }
+        let phase_offset: i64;
+        // Potentially occuring rounding errors should be neglible and are ignored 
+        phase_offset = ( self.phase_offset_deg/360.0 * 4294967295.0 ) as i64;
+        
         Ok(Config {
             amplitude: DacCode::try_from(self.amplitude)
                 .or(Err(Error::InvalidAmplitude))?
                 .into(),
+            offset: DacCode::try_from(self.offset)
+                .or(Err(Error::InvalidOffset))?
+                .into(),
             signal: self.signal,
             frequency_tuning_word,
+            phase_offset,
         })
     }
 }
@@ -119,8 +151,14 @@ pub struct Config {
     /// The full-scale output code of the signal
     pub amplitude: i16,
 
+    /// DC offset output code of the signal 
+    pub offset: i16,
+
     /// The frequency tuning word of the signal. Phase is incremented by this amount
     pub frequency_tuning_word: [i32; 2],
+
+    /// Signal phase offset. Phase accumulator is increased/decrease by this amount 
+    pub phase_offset: i64,
 }
 
 impl Default for Config {
@@ -128,7 +166,9 @@ impl Default for Config {
         Self {
             signal: Signal::Cosine,
             amplitude: 0,
+            offset: 0,
             frequency_tuning_word: [0, 0],
+            phase_offset: 0,
         }
     }
 }
@@ -174,13 +214,21 @@ impl core::iter::Iterator for SignalGenerator {
 
     /// Get the next value in the generator sequence.
     fn next(&mut self) -> Option<i16> {
-        let sign = self.phase_accumulator.is_negative();
-        self.phase_accumulator = self
-            .phase_accumulator
+
+        // Add phase_offset divided by 2 twice as its max value is +/-2^32.
+        // Rounding occuring for odd phase_offset should be neglible and are ignored 
+        let mut phase_accu_shifted = self
+                .phase_accumulator
+                .wrapping_add( (self.config.phase_offset>>1) as i32 )
+                .wrapping_add( (self.config.phase_offset>>1) as i32 );
+        
+        let sign = phase_accu_shifted.is_negative();
+        phase_accu_shifted = phase_accu_shifted
             .wrapping_add(self.config.frequency_tuning_word[sign as usize]);
 
         let scale = match self.config.signal {
-            Signal::Cosine => (idsp::cossin(self.phase_accumulator).0 >> 16),
+            Signal::Sine => (idsp::cossin(phase_accu_shifted).1 >> 16),
+            Signal::Cosine => (idsp::cossin(phase_accu_shifted).0 >> 16),
             Signal::Square => {
                 if sign {
                     -1 << 15
@@ -189,11 +237,15 @@ impl core::iter::Iterator for SignalGenerator {
                 }
             }
             Signal::Triangle => {
-                (self.phase_accumulator >> 15).abs() - (1 << 15)
+                (phase_accu_shifted >> 15).abs() - (1 << 15)
             }
         };
 
+        self.phase_accumulator = self
+            .phase_accumulator
+            .wrapping_add(self.config.frequency_tuning_word[sign as usize]);
+
         // Calculate the final output result as an i16.
-        Some(((self.config.amplitude as i32 * scale) >> 15) as _)
+        Some( (((self.config.amplitude as i32 * scale) >> 15) + self.config.offset as i32) as _)
     }
 }

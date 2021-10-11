@@ -299,6 +299,10 @@ mod app {
                 amplitude: DacCode::try_from(1.0).unwrap().into(),
 
                 signal: signal_generator::Signal::Cosine,
+
+                offset: 0,
+
+                phase_offset: 0,
             }
         };
 
