@@ -67,6 +67,7 @@ const BATCH_SIZE: usize = 8;
 // The logarithm of the number of 100MHz timer ticks between each sample. With a value of 2^7 =
 // 128, there is 1.28uS per sample, corresponding to a sampling frequency of 781.25 KHz.
 const SAMPLE_TICKS_LOG2: u8 = 7;
+const SAMPLE_TICKS: u32 = 1<<SAMPLE_TICKS_LOG2;
 
 #[derive(Clone, Copy, Debug, Deserialize, Miniconf)]
 pub struct Settings {
@@ -240,12 +241,12 @@ mod app {
             signal_generator: [
                 SignalGenerator::new(
                     settings.signal_generator[0]
-                        .try_into_config(SAMPLE_TICKS_LOG2)
+                        .try_into_config(SAMPLE_TICKS)
                         .unwrap(),
                 ),
                 SignalGenerator::new(
                     settings.signal_generator[1]
-                        .try_into_config(SAMPLE_TICKS_LOG2)
+                        .try_into_config(SAMPLE_TICKS)
                         .unwrap(),
                 ),
             ],
@@ -404,7 +405,7 @@ mod app {
 
         // Update the signal generators
         for (i, &config) in settings.signal_generator.iter().enumerate() {
-            match config.try_into_config(SAMPLE_TICKS_LOG2) {
+            match config.try_into_config(SAMPLE_TICKS) {
                 Ok(config) => {
                     c.shared
                         .signal_generator

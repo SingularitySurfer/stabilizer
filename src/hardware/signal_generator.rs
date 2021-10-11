@@ -81,7 +81,7 @@ impl BasicConfig {
     /// sample.
     pub fn try_into_config(
         self,
-        sample_ticks_log2: u8,
+        sample_ticks: u32,
     ) -> Result<Config, Error> {
         let symmetry_complement = 1.0 - self.symmetry;
         // Validate symmetry
@@ -89,26 +89,29 @@ impl BasicConfig {
             return Err(Error::InvalidSymmetry);
         }
 
-        let lsb_per_hertz: f32 = (1u64 << (31 + sample_ticks_log2)) as f32
-            / (TIMER_FREQUENCY.0 * 1_000_000) as f32;
-        let ftw = self.frequency * lsb_per_hertz;
+        let fdac = ( (TIMER_FREQUENCY.0 * 1_000_000) as f32) / (sample_ticks as f32);
+        let fratio = self.frequency/fdac;
+
+        // Caclulate frequency tuning word divided by 2.
+        // This factor is considered when processing the signal symmetry  
+        let ftw_div2 = fratio*( (1u64 << 31) as f32);
 
         // Validate base frequency tuning word to be below Nyquist.
         const NYQUIST: f32 = (1u32 << 31) as _;
-        if ftw < 0.0 || 2.0 * ftw > NYQUIST {
+        if ftw_div2 < 0.0 || 2.0 * ftw_div2 > NYQUIST {
             return Err(Error::InvalidFrequency);
         }
 
         // Calculate the frequency tuning words.
         // Clip both frequency tuning words to within Nyquist before rounding.
         let frequency_tuning_word = [
-            if self.symmetry * NYQUIST > ftw {
-                ftw / self.symmetry
+            if self.symmetry * NYQUIST > ftw_div2 {
+                ftw_div2 / self.symmetry
             } else {
                 NYQUIST
             } as i32,
-            if symmetry_complement * NYQUIST > ftw {
-                ftw / symmetry_complement
+            if symmetry_complement * NYQUIST > ftw_div2 {
+                ftw_div2 / symmetry_complement
             } else {
                 NYQUIST
             } as i32,
