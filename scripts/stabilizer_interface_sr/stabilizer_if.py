@@ -25,6 +25,7 @@ from iir_coefficients import pid_coefficients
 import functools
 from copy import deepcopy
 from scipy import signal
+import shlex
 
 
 
@@ -219,7 +220,7 @@ class stabilizerClass:
         self.stream_requesting = False
         self.telemetry_period = 10
         self.broker = '192.168.137.1'
-        self.mac = '04-91-62-d9-4c-7f'
+        self.mac = '04-91-62-d9-83-19'
         self.application = application
         self.gain_afe0 = 'G1'
         self.gain_afe0 = 'G1'
@@ -245,7 +246,7 @@ class stabilizerClass:
         basic_settings = self.BASIC_SETTINGS[application]
         for i in range(0,len(basic_settings)):
             setattr(self, basic_settings[i][0], basic_settings[i][1])
-        self.prefix = 'python -m miniconf --broker '+self.broker+' dt/sinara/'\
+        self.prefix = 'python3 -m miniconf --broker '+self.broker+' dt/sinara/'\
                                     +self.application+'/'+self.mac+' '
     
     def run(self):
@@ -795,6 +796,7 @@ class stabilizerClass:
 def shell_cmd(cmd, timeout, print_cmd, print_return):
     if print_cmd:
         print(cmd)
+    cmd = shlex.split(cmd)
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     try:
         p.wait(timeout)
@@ -981,6 +983,7 @@ class plotClass:
             
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
+        plt.show()
             
 def load(filename):
     dir_path = os.path.dirname(os.path.realpath(__file__)) 

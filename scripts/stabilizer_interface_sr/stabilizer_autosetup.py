@@ -34,7 +34,7 @@ stabilizer.app_mode = 'Man'
 
 """# Stabilizer basic settings #"""
 # Stabilizer telemetry period
-stabilizer.telemetry_period = 0
+stabilizer.telemetry_period = 1
 # possible analog front end gains: G1, G2, G5, G10
 stabilizer.gain_afe0 = 'G2'
 stabilizer.gain_afe1 = 'G1'
@@ -132,11 +132,12 @@ stabilizer.run()
 # stabilizer.save('some_tag')
 
 # load and plot example
-# s = stabilizer_if.load('ms_control_saveload_test_1.csv')
+# s = stabilizer_if.load('savedData/ms_control_saveload_test_1.csv')
 # s.add_plot()
 # s.plot.plots = ['ErrMod','ErrDemod','CtrlDac']
 # s.data_from_int()
 # s.plot.update()
 # fig_idx = 1
-#plot_name = 'savedData/testplot'
-#stabilizer_if.save_plot(fig_idx,plot_name)
+# plot_name = 'savedData/testplot'
+# stabilizer_if.save_plot(fig_idx,plot_name)
+# %%
