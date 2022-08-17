@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from . import DAC_VOLTS_PER_LSB
+from __init__ import DAC_VOLTS_PER_LSB
 
 logger = logging.getLogger(__name__)
 
