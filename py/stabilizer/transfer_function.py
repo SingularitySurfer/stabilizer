@@ -3,8 +3,6 @@
 
 import argparse
 import asyncio
-from time import sleep
-from xml.etree.ElementPath import find
 import miniconf
 import socket
 import csv
@@ -20,14 +18,11 @@ from scipy import signal
 
 from stream import StabilizerStream, get_local_ip
 
-F_MIN = 10
-F_MAX = 10000
-POINTS = 10
 AMPLITUDE = 1
 F_SAMPLE = 781250
 PERIODS_PER_BIN = 10
 MAX_FRAMES = 1000  # maximim nr frames per freq bin
-SETTINGS_DELAY = 1e-2 # delay to wait for after updating miniconf settings
+SETTINGS_DELAY = 1e-2  # delay to wait for after updating miniconf settings
 
 
 async def main():
@@ -54,17 +49,15 @@ async def main():
         "-p",
         type=str,
         default="dt/sinara/dual-iir/04-91-62-d9-83-19",
-        help="The device prefix in MQTT, wildcards allowed as "
-        "long as the match is unique (%(default)s)",
+        help="The device prefix in MQTT",
     )
     parser.add_argument(
         "--bins", type=int, default=100, help="nr frequency bins to record"
     )
+    parser.add_argument("--f_min", type=int, default=100, help="lowest frequency bin")
+    parser.add_argument("--f_max", type=int, default=100000, help="highest frequency bin")
     parser.add_argument(
-        "--f_min", type=int, default=100, help="lowest frequency bin"
-    )
-    parser.add_argument(
-        "--f_max", type=int, default=1000, help="highest frequency bin"
+        "--filename", type=str, default="data.csv", help="File to safe the data in."
     )
     args = parser.parse_args()
 
@@ -91,12 +84,15 @@ async def main():
     f_run = []
 
     fig, ax = plt.subplots()
+    ax.grid()
     plt.ion()
 
-    file = open("data.csv", "w")
+    file = open(args.filename, "w")
     writer = csv.writer(file)
 
     freqs = np.linspace(args.f_min, args.f_max, args.bins)
+    first = True
+    scale = 0.0
     for f in freqs:
         print(f)
         f_run.append(f)
@@ -114,26 +110,32 @@ async def main():
             data.extend(frame.to_si()["adc"][args.channel])
             # if len(data) > n_bin_samples:
             #     break
+
         # ax.plot(data)
         # plt.psd(data, len(data), F_SAMPLE)
+        for d in data:
+            writer.writerow([d])
+
         freqs, psd = signal.welch(data, F_SAMPLE, nperseg=len(data))
-        idx = (np.abs(freqs - f)).argmin() # get closest index
-        power = 10 * np.log10(psd[idx])
+        idx = (np.abs(freqs[3:] - f)).argmin()  # get closest index
+        power = (
+            10 * np.log10(psd[idx - 3 : idx + 3].max()) if idx > 3 else psd[idx]
+        )  # still search in vicinity
+        if first:
+            scale = power
+        power = power - scale
         print(f"frequency: {freqs[idx]} power: {power}")
         tf.append(power)
         ax.plot(f_run, tf)
-        writer.writerow([power])
+        # writer.writerow([power])
         data = []
         plt.pause(0.0001)
+        first = False
 
     file.close()
     print("done")
     input()
 
-def find_nearest(array, value):
-    array = np.asarray(array)
-    idx = (np.abs(array - value)).argmin()
-    return array[idx]
 
 if __name__ == "__main__":
     asyncio.run(main())
