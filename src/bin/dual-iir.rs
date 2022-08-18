@@ -160,7 +160,7 @@ impl Default for Settings {
             // Force suppress filter output updates.
             force_hold: false,
             // The default telemetry period in seconds.
-            telemetry_period: 10,
+            telemetry_period: 1,
 
             signal_generator: [signal_generator::BasicConfig::default(); 2],
 

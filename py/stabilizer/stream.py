@@ -57,7 +57,7 @@ class AdcDac:
         data = data.reshape(-1, 4, self.header.batch_size)
         data = data.swapaxes(0, 1).reshape(4, -1)
         # convert DAC offset binary to two's complement
-        data[2:] ^= np.int16(0x8000)
+        data = np.append(data[:2], data[2:] ^ np.int16(0x8000), axis=0)
         return data
 
     def to_si(self):

@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 import csv
 import argparse
+import numpy as np
 
 
 
@@ -19,7 +20,8 @@ def main():
     plt.ylabel("Power (dB)")
     plt.title("Transfer Function")
     plt.grid()
-    plt.plot(data)
+    f = np.linspace(10, 20000, len(data))
+    plt.plot(f, data)
     plt.show()
 
 

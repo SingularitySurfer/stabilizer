@@ -18,7 +18,7 @@ from scipy import signal
 
 from stream import StabilizerStream, get_local_ip
 
-AMPLITUDE = 1
+AMPLITUDE = 0.01
 F_SAMPLE = 781250
 PERIODS_PER_BIN = 10
 MAX_FRAMES = 1000  # maximim nr frames per freq bin
@@ -55,7 +55,9 @@ async def main():
         "--bins", type=int, default=100, help="nr frequency bins to record"
     )
     parser.add_argument("--f_min", type=int, default=100, help="lowest frequency bin")
-    parser.add_argument("--f_max", type=int, default=100000, help="highest frequency bin")
+    parser.add_argument(
+        "--f_max", type=int, default=100000, help="highest frequency bin"
+    )
     parser.add_argument(
         "--filename", type=str, default="data.csv", help="File to safe the data in."
     )
@@ -113,13 +115,15 @@ async def main():
 
         # ax.plot(data)
         # plt.psd(data, len(data), F_SAMPLE)
-        for d in data:
-            writer.writerow([d])
+        # for d in data:
+        #     writer.writerow([d])
 
-        freqs, psd = signal.welch(data, F_SAMPLE, nperseg=len(data))
-        idx = (np.abs(freqs[3:] - f)).argmin()  # get closest index
+        freqs, psd = signal.welch(data, F_SAMPLE, window="flattop", nperseg=len(data))
+        # for d in psd:
+        #     writer.writerow([10 * np.log10(d)])
+        idx = (np.abs(freqs - f)).argmin()  # get closest index
         power = (
-            10 * np.log10(psd[idx - 3 : idx + 3].max()) if idx > 3 else psd[idx]
+            10 * np.log10(psd[idx - 10 : idx + 10].max()) if idx > 3 else psd[idx]
         )  # still search in vicinity
         if first:
             scale = power
@@ -127,7 +131,7 @@ async def main():
         print(f"frequency: {freqs[idx]} power: {power}")
         tf.append(power)
         ax.plot(f_run, tf)
-        # writer.writerow([power])
+        writer.writerow([power])
         data = []
         plt.pause(0.0001)
         first = False

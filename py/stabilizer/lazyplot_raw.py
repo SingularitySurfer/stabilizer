@@ -24,7 +24,7 @@ def main():
     ax[1].set_xlim(1, 400000)
     ax[0].set_xlabel("Sampler Nr.")
     ax[0].set_ylabel("Amplitude (V)")
-    ax[0].set_title("Rec_data")
+    ax[0].set_title("Time domain data")
     ax[0].grid()
     ax[0].plot(data)
     plt.show()  #

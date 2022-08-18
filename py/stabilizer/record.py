@@ -28,7 +28,6 @@ async def main():
     parser.add_argument(
         "--host", default="10.42.0.1", help="Local address to listen on"
     )
-    parser.add_argument("--broker", default="10.42.0.1", help="MQTT broker")
     parser.add_argument(
         "--channel",
         "-c",
