@@ -36,9 +36,6 @@ pub struct BasicConfig {
 
     /// The phase of the output signal in turns.
     pub phase: f32,
-
-    /// The LogSweptSine epsilon. The frequency is multiplied by 1+espilon in every step during the sweep.
-    pub sweept_epsilon: f32,
 }
 
 impl Default for BasicConfig {
@@ -49,7 +46,6 @@ impl Default for BasicConfig {
             signal: Signal::LogSweptSine,
             amplitude: 1.0,
             phase: 0.0,
-            sweept_epsilon: 0.1,
         }
     }
 }
@@ -112,14 +108,11 @@ impl BasicConfig {
 
         let phase = self.phase * (1u64 << 32) as f32;
 
-        let sweep_epsilon = (self.sweept_epsilon*((1<<16) as f32)) as i32;
-
         Ok(Config {
             amplitude: amplitude as i16,
             signal: self.signal,
             phase_increment,
             phase_offset: phase as i32,
-            sweep_epsilon,
         })
     }
 }
@@ -137,10 +130,6 @@ pub struct Config {
 
     /// The phase offset
     pub phase_offset: i32,
-
-    /// During a LogSweptSine" he frequency tuning word is multiplied by one plus this epsilon
-    /// (i32 in fractions of one)
-    pub sweep_epsilon: i32,
 }
 
 impl Default for Config {
@@ -150,7 +139,6 @@ impl Default for Config {
             amplitude: 0,
             phase_increment: [0, 0],
             phase_offset: 0,
-            sweep_epsilon: 0,
         }
     }
 }
@@ -174,7 +162,7 @@ impl SignalGenerator {
         Self {
             config,
             phase_accumulator: 0,
-            frequency_accumulator: 100,
+            frequency_accumulator: 5000,
         }
     }
 
@@ -200,7 +188,7 @@ impl core::iter::Iterator for SignalGenerator {
         let sign = phase.is_negative();
         self.phase_accumulator = self
             .phase_accumulator
-            .wrapping_add(self.frequency_accumulator);
+            .wrapping_add(self.frequency_accumulator << 11);
         let scale = match self.config.signal {
             Signal::Cosine => (idsp::cossin(phase).0 >> 16),
             Signal::Square => {
@@ -212,14 +200,21 @@ impl core::iter::Iterator for SignalGenerator {
             }
             Signal::Triangle => i16::MIN as i32 + (phase >> 15).abs(),
             Signal::LogSweptSine => {
-                let frequency_accumulator = self.frequency_accumulator as i64
-                    * ((1i64 << 16) + ((self.config.sweep_epsilon as i64)));
+                let frequency_accumulator =
+                    self.frequency_accumulator * ((1 << 13) + 3);
                 self.frequency_accumulator =
-                    (frequency_accumulator >> 16) as i32;
+                    (frequency_accumulator >> 13) as i32;
+                if self.frequency_accumulator < 0 {
+                    self.frequency_accumulator = 2800;
+                    // log::info!("ovfl");
+                }
                 // let phase = self
                 //     .phase_accumulator
                 //     .wrapping_add(self.frequency_accumulator);
-                log::info!("frequency_accumulator: {:?}", frequency_accumulator);
+                // log::info!(
+                //     "frequency_accumulator: {:?}",
+                //     self.frequency_accumulator
+                // );
                 // log::info!("frequency_accumulator: {:?}", self.frequency_accumulator);
                 idsp::cossin(phase).1 >> 16
             }
