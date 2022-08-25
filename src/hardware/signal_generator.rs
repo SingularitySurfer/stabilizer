@@ -206,12 +206,12 @@ impl core::iter::Iterator for SignalGenerator {
                     (sweep_accumulator >> 16) as u32;
                 if sweep_accumulator > 1<<48 {
                     self.sweep_accumulator = 50000;
-                    log::info!("ovfl");
+                    // log::info!("ovfl");
                 }
                 // let phase = self
                 //     .phase_accumulator
                 //     .wrapping_add(self.sweep_accumulator);
-                log::info!("sweep_accumulator: {:?}", sweep_accumulator);
+                // log::info!("sweep_accumulator: {:?}", sweep_accumulator);
                 // log::info!("sweep_accumulator: {:?}", (self.sweep_accumulator >> (22+16)) as i32);
                 idsp::cossin((self.sweep_accumulator << 10) as i32).1 >> 16
             }
