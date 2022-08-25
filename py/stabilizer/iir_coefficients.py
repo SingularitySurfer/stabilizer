@@ -269,7 +269,7 @@ def _main():
 
     logging.basicConfig(
         format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
-        level=logging.WARN - 10*args.verbose)
+        level=logging.INFO - 10*args.verbose)
 
     # Calculate the IIR coefficients for the filter.
     coefficients = filters[args.filter_type].coefficients(args)
@@ -305,6 +305,7 @@ def _main():
             "y_offset": stabilizer.voltage_to_machine_units(
                 args.y_offset + forward_gain * args.x_offset)
         })
+        print(coefficients)
 
     asyncio.run(configure())
 
