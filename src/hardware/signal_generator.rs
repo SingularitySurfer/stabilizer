@@ -146,7 +146,7 @@ impl Default for Config {
 #[derive(Debug, Default)]
 pub struct SignalGenerator {
     phase_accumulator: i32,
-    frequency_accumulator: i32,
+    sweep_accumulator: u32,
     config: Config,
 }
 
@@ -162,7 +162,7 @@ impl SignalGenerator {
         Self {
             config,
             phase_accumulator: 0,
-            frequency_accumulator: 5000,
+            sweep_accumulator: 50000,
         }
     }
 
@@ -188,7 +188,7 @@ impl core::iter::Iterator for SignalGenerator {
         let sign = phase.is_negative();
         self.phase_accumulator = self
             .phase_accumulator
-            .wrapping_add(self.frequency_accumulator << 11);
+            .wrapping_add(self.config.phase_increment[sign as usize]);
         let scale = match self.config.signal {
             Signal::Cosine => (idsp::cossin(phase).0 >> 16),
             Signal::Square => {
@@ -200,23 +200,20 @@ impl core::iter::Iterator for SignalGenerator {
             }
             Signal::Triangle => i16::MIN as i32 + (phase >> 15).abs(),
             Signal::LogSweptSine => {
-                let frequency_accumulator =
-                    self.frequency_accumulator * ((1 << 13) + 3);
-                self.frequency_accumulator =
-                    (frequency_accumulator >> 13) as i32;
-                if self.frequency_accumulator < 0 {
-                    self.frequency_accumulator = 2800;
-                    // log::info!("ovfl");
+                let sweep_accumulator =
+                    self.sweep_accumulator as u64 * ((1u64 << 16) + 36u64);
+                self.sweep_accumulator =
+                    (sweep_accumulator >> 16) as u32;
+                if sweep_accumulator > 1<<48 {
+                    self.sweep_accumulator = 50000;
+                    log::info!("ovfl");
                 }
                 // let phase = self
                 //     .phase_accumulator
-                //     .wrapping_add(self.frequency_accumulator);
-                // log::info!(
-                //     "frequency_accumulator: {:?}",
-                //     self.frequency_accumulator
-                // );
-                // log::info!("frequency_accumulator: {:?}", self.frequency_accumulator);
-                idsp::cossin(phase).1 >> 16
+                //     .wrapping_add(self.sweep_accumulator);
+                log::info!("sweep_accumulator: {:?}", sweep_accumulator);
+                // log::info!("sweep_accumulator: {:?}", (self.sweep_accumulator >> (22+16)) as i32);
+                idsp::cossin((self.sweep_accumulator << 10) as i32).1 >> 16
             }
         };
 

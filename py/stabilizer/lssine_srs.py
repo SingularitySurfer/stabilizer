@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 from scipy import signal
 
+T = 0.1
+f1 = 100
+f2 = 100000
 
 def main():
     parser = argparse.ArgumentParser(description="Record raw Stabilizer data")
@@ -16,15 +19,8 @@ def main():
     )
     args = parser.parse_args()
 
-    x = np.arange(0, 20000, 1)
-    acc = np.uint32(50000)
-    eps = np.uint32(37)
-    y = []
-    for i, xx in enumerate(x):
-        y.append(np.sin(np.float64(acc)*(2**-22)*np.pi))
-        accl = acc * (np.uint32(1<<16) + eps)
-        acc = accl >> 16
-        print(acc)
+    x = np.linspace(0, 0.1, 100000)
+    y = np.sin((2*np.pi*f1*T / np.log(f2/f1)) * np.exp(np.log(f2/f1)*x / T)-1)
 
     fig, ax = plt.subplots(2, 1)
     ax[1].psd(y, len(y), 1, window=mlab.window_none)
