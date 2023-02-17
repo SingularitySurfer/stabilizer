@@ -43,7 +43,7 @@ where
     /// # Returns
     /// The normalized ADC measurement as a ratio of full-scale.
     pub fn read_normalized(&mut self) -> Result<f32, AdcError> {
-        self.read_raw().map(|code| code as f32 / self.slope)
+        self.read_raw().map(|code| code as f32)
     }
 
     /// Read the raw ADC sample for the channel.

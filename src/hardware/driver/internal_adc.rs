@@ -2,7 +2,7 @@ use super::{Channel, ChannelVariant};
 use crate::hardware::shared_adc::AdcChannel;
 
 use super::super::hal::{
-    gpio::{gpiof::*, Analog},
+    gpio::{gpioc::*, gpiof::*, Analog},
     stm32::{ADC1, ADC2, ADC3},
 };
 
@@ -24,7 +24,7 @@ pub enum DriverMonitorChannel {
 pub struct InternalAdc {
     output_voltage: (
         AdcChannel<'static, ADC1, PF11<Analog>>,
-        AdcChannel<'static, ADC3, PF3<Analog>>,
+        AdcChannel<'static, ADC3, PC2<Analog>>,
     ),
     output_current: (
         AdcChannel<'static, ADC2, PF13<Analog>>,
@@ -37,7 +37,7 @@ impl InternalAdc {
     pub fn new(
         output_voltage: (
             AdcChannel<'static, ADC1, PF11<Analog>>,
-            AdcChannel<'static, ADC3, PF3<Analog>>,
+            AdcChannel<'static, ADC3, PC2<Analog>>,
         ),
         output_current: (
             AdcChannel<'static, ADC2, PF13<Analog>>,
@@ -64,10 +64,14 @@ impl InternalAdc {
     pub fn read_output_voltage(&mut self, ch: Channel) -> f32 {
         let ratio: f32 = match ch {
             Channel::LowNoise => {
-                self.output_voltage.0.read_normalized().unwrap()
+                let voltage = self.output_voltage.0.read_normalized().unwrap();
+                log::info!("{:?}", voltage);
+                voltage
             }
             Channel::HighPower => {
-                self.output_voltage.1.read_normalized().unwrap()
+                let voltage = self.output_voltage.1.read_normalized().unwrap();
+                // log::info!("{:?}", voltage);
+                voltage
             }
         };
         const SCALE: f32 = V_SCALE * V_REF;
@@ -79,7 +83,9 @@ impl InternalAdc {
     pub fn read_output_current(&mut self, ch: Channel) -> f32 {
         let ratio: f32 = match ch {
             Channel::LowNoise => {
-                self.output_current.0.read_normalized().unwrap()
+                let cur = self.output_current.0.read_normalized().unwrap();
+                // log::info!("current: {:?}", cur);
+                cur
             }
             Channel::HighPower => {
                 self.output_current.1.read_normalized().unwrap()

@@ -784,13 +784,13 @@ pub fn setup(
             &ccdr.clocks,
         );
 
-        adc1.set_sample_time(hal::adc::AdcSampleTime::T_810);
+        adc1.set_sample_time(hal::adc::AdcSampleTime::T_2);
         adc1.set_resolution(hal::adc::Resolution::SixteenBit);
         adc1.calibrate();
-        adc2.set_sample_time(hal::adc::AdcSampleTime::T_810);
+        adc2.set_sample_time(hal::adc::AdcSampleTime::T_2);
         adc2.set_resolution(hal::adc::Resolution::SixteenBit);
         adc2.calibrate();
-        adc3.set_sample_time(hal::adc::AdcSampleTime::T_810);
+        adc3.set_sample_time(hal::adc::AdcSampleTime::T_2);
         adc3.set_resolution(hal::adc::Resolution::SixteenBit);
         adc3.calibrate();
 
@@ -1019,7 +1019,7 @@ pub fn setup(
         );
         let output_voltage = (
             adc1.create_channel(gpiof.pf11.into_analog()),
-            adc3.create_channel(gpiof.pf3.into_analog()),
+            adc3.create_channel(gpioc.pc2.into_analog()),
         );
         let output_current = (
             adc2.create_channel(gpiof.pf13.into_analog()),
