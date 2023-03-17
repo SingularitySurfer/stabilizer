@@ -258,6 +258,9 @@ pub fn setup(
         log::info!("Starting");
     }
 
+    core.DCB.enable_trace();
+    core.DWT.enable_cycle_counter();
+
     let pwr = device.PWR.constrain();
     let vos = pwr.freeze();
 
