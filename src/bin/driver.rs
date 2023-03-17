@@ -654,6 +654,7 @@ mod app {
                 tele.monitor.current[channel as usize],
             ]
         });
+        log::info!("{:?}", hal::device::DWT::cycle_count());
         if let Some(tests) = c.shared.output_state.lock(|state| {
             let (delay, tests) =
                 state[channel as usize].handle_tick(&ramp_target);
@@ -670,6 +671,7 @@ mod app {
             };
             tests
         }) {
+            log::info!("{:?}", hal::device::DWT::cycle_count());
             c.shared.laser_interlock.lock(|ilock| {
                 SelfTest::run_tests(tests, &reads, ilock, &channel);
             });
